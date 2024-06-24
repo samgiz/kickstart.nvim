@@ -102,7 +102,7 @@ vim.g.have_nerd_font = false
 vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -152,7 +152,7 @@ vim.opt.inccommand = 'split'
 vim.opt.cursorline = true
 
 -- Minimal number of screen lines to keep above and below the cursor.
-vim.opt.scrolloff = 10
+vim.opt.scrolloff = 5
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -176,10 +176,10 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
 -- TIP: Disable arrow keys in normal mode
--- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
--- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
--- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
--- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
+vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
+vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
+vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
+vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
 
 -- Keybinds to make split navigation easier.
 --  Use CTRL+<hjkl> to switch between windows
@@ -248,13 +248,13 @@ require('lazy').setup({
   { -- Adds git related signs to the gutter, as well as utilities for managing changes
     'lewis6991/gitsigns.nvim',
     opts = {
-      signs = {
-        add = { text = '+' },
-        change = { text = '~' },
-        delete = { text = '_' },
-        topdelete = { text = '‾' },
-        changedelete = { text = '~' },
-      },
+      -- signs = {
+      --   add = { text = '+' },
+      --   change = { text = '~' },
+      --   delete = { text = '_' },
+      --   topdelete = { text = '‾' },
+      --   changedelete = { text = '~' },
+      -- },
     },
   },
 
@@ -540,11 +540,11 @@ require('lazy').setup({
           -- code, if the language server you are using supports them
           --
           -- This may be unwanted, since they displace some of your code
-          if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
-            map('<leader>th', function()
-              vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
-            end, '[T]oggle Inlay [H]ints')
-          end
+          -- if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
+          --   map('<leader>th', function()
+          --     vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
+          --   end, '[T]oggle Inlay [H]ints')
+          -- end
         end,
       })
 
@@ -565,17 +565,17 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
+        clangd = {},
         -- gopls = {},
-        -- pyright = {},
-        -- rust_analyzer = {},
+        pyright = {},
+        rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`tsserver`) will work just fine
-        -- tsserver = {},
+        tsserver = {},
         --
 
         lua_ls = {
@@ -653,11 +653,11 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
+        python = { 'isort', 'black' },
         --
         -- You can use a sub-list to tell conform to run *until* a formatter
         -- is found.
-        -- javascript = { { "prettierd", "prettier" } },
+        javascript = { { 'prettierd', 'prettier' } },
       },
     },
   },
@@ -703,8 +703,18 @@ require('lazy').setup({
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
       luasnip.config.setup {}
-
+      -- Add toggle for autocomplete
+      vim.g.cmptoggle = true
+      vim.keymap.set('i', '<M-a>', '<cmd>lua vim.g.cmptoggle = not vim.g.cmptoggle<CR>', { desc = 'toggle nvim-cmp' })
       cmp.setup {
+        enabled = function()
+          local context = require 'cmp.config.context'
+          -- https://github.com/hrsh7th/nvim-cmp/wiki/Advanced-techniques#disabling-completion-in-certain-contexts-such-as-comments
+          if context.in_treesitter_capture 'comment' or context.in_syntax_group 'Comment' then
+            return false
+          end
+          return vim.g.cmptoggle
+        end,
         snippet = {
           expand = function(args)
             luasnip.lsp_expand(args.body)
@@ -716,6 +726,7 @@ require('lazy').setup({
         -- chosen, you will need to read `:help ins-completion`
         --
         -- No, but seriously. Please read `:help ins-completion`, it is really good!
+
         mapping = cmp.mapping.preset.insert {
           -- Select the [n]ext item
           ['<C-n>'] = cmp.mapping.select_next_item(),
@@ -772,19 +783,96 @@ require('lazy').setup({
       }
     end,
   },
+  {
+    'zbirenbaum/copilot.lua',
+    cmd = 'Copilot',
+    event = 'InsertEnter',
+    config = function()
+      require('copilot').setup {
+        panel = {
+          enabled = true,
+          auto_refresh = false,
+          keymap = {
+            jump_prev = '[[',
+            jump_next = ']]',
+            accept = '<CR>',
+            refresh = 'gr',
+            open = '<M-CR>',
+          },
+          layout = {
+            position = 'bottom', -- | top | left | right
+            ratio = 0.4,
+          },
+        },
+        suggestion = {
+          enabled = true,
+          auto_trigger = false,
+          hide_during_completion = true,
+          debounce = 75,
+          keymap = {
+            accept = '<M-l>',
+            accept_word = false,
+            accept_line = false,
+            next = '<M-]>',
+            prev = '<M-[>',
+            dismiss = '<C-]>',
+          },
+        },
+        filetypes = {
+          javascript = true,
+          typescript = true,
+          python = true,
+          cpp = true,
+          c = true,
+          lua = true,
+          ['*'] = false,
+        },
+        copilot_node_command = 'node', -- Node.js version must be > 18.x
+        server_opts_overrides = {},
+      }
+    end,
+  },
+  {
+    'kevinhwang91/nvim-ufo',
+    dependencies = { 'kevinhwang91/promise-async' },
+    event = 'VimEnter',
+    config = function()
+      vim.o.foldcolumn = '1' -- '0' is not bad
+      vim.o.foldlevel = 99 -- Using ufo provider need a large value, feel free to decrease the value
+      vim.o.foldlevelstart = 99
+      vim.o.foldenable = true
+
+      -- Using ufo provider need remap `zR` and `zM`. If Neovim is 0.6.1, remap yourself
+      vim.keymap.set('n', 'zR', require('ufo').openAllFolds)
+      vim.keymap.set('n', 'zM', require('ufo').closeAllFolds)
+      local capabilities = vim.lsp.protocol.make_client_capabilities()
+      capabilities.textDocument.foldingRange = {
+        dynamicRegistration = false,
+        lineFoldingOnly = true,
+      }
+      local language_servers = require('lspconfig').util.available_servers() -- or list servers manually like {'gopls', 'clangd'}
+      for _, ls in ipairs(language_servers) do
+        require('lspconfig')[ls].setup {
+          capabilities = capabilities,
+          -- you can add other fields for setting up lsp server in this table
+        }
+      end
+      require('ufo').setup()
+    end,
+  },
 
   { -- You can easily change to a different colorscheme.
     -- Change the name of the colorscheme plugin below, and then
     -- change the command in the config to whatever the name of that colorscheme is.
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
+    'bluz71/vim-moonfly-colors',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     init = function()
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+      vim.cmd.colorscheme 'moonfly'
 
       -- You can configure highlights by doing something like:
       vim.cmd.hi 'Comment gui=none'
@@ -793,7 +881,7 @@ require('lazy').setup({
 
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
-
+  { 'nvim-tree/nvim-tree.lua', event = 'VimEnter', opts = {} },
   { -- Collection of various small independent plugins/modules
     'echasnovski/mini.nvim',
     config = function()
@@ -873,12 +961,12 @@ require('lazy').setup({
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
-  -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.debug',
+  require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
   -- require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
@@ -910,3 +998,26 @@ require('lazy').setup({
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+vim.api.nvim_set_keymap('i', '<C-BS>', '<C-W>', { noremap = true })
+vim.api.nvim_set_keymap('i', '<C-S-BS>', '<C-\\><C-o>dB', { noremap = true })
+-- vim.api.nvim_set_keymap('n', '<C-BS>', 'db', { noremap = true })
+-- vim.api.nvim_set_keymap('n', '<C-S-BS>', 'dB', { noremap = true })
+vim.api.nvim_set_keymap('i', '<C-Del>', '<C-\\><C-o>de', { noremap = true })
+vim.api.nvim_set_keymap('i', '<C-S-Del>', '<C-\\><C-o>dE', { noremap = true })
+-- vim.api.nvim_set_keymap('n', '<C-Del>', 'dw', { noremap = true })
+-- vim.api.nvim_set_keymap('n', '<C-S-Del>', 'dW', { noremap = true })
+vim.api.nvim_set_keymap('i', '<C-Tab>', '<C-\\><C-o>gt', { noremap = true })
+vim.api.nvim_set_keymap('i', '<C-S-Tab>', '<C-\\><C-o>gt', { noremap = true })
+vim.api.nvim_set_keymap('i', '<C-lt>', '<C-\\><C-o>', { noremap = true })
+vim.api.nvim_set_keymap('i', '<C-S-Left>', '<C-\\><C-o>B', { noremap = true })
+vim.api.nvim_set_keymap('i', '<C-S-Right>', '<C-\\><C-o>E', { noremap = true })
+vim.opt.whichwrap:append {
+  ['<'] = true,
+  ['>'] = true,
+  ['['] = true,
+  [']'] = true,
+  h = true,
+  l = true,
+}
+vim.api.nvim_set_keymap('n', '<C-/>', 'gcc', {})
+vim.api.nvim_set_keymap('i', '<C-/>', '<C-\\><C-o>gcc', {})

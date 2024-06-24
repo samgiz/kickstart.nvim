@@ -42,6 +42,7 @@ return {
       ensure_installed = {
         -- Update this to ensure that you have the debuggers for the langs you want
         'delve',
+        'gdb',
       },
     }
 
@@ -90,6 +91,24 @@ return {
         -- On Windows delve must be run attached or it crashes.
         -- See https://github.com/leoluz/nvim-dap-go/blob/main/README.md#configuring
         detached = vim.fn.has 'win32' == 0,
+      },
+    }
+    -- c++ setup
+    dap.adapters.cppdbg = {
+      id = 'cppdbg',
+      type = 'executable',
+      command = '/opt/cpptools-linux/extension/debugAdapters/bin/OpenDebugAD7',
+    }
+    dap.configurations.cpp = {
+      {
+        name = 'Launch file',
+        type = 'cppdbg',
+        request = 'launch',
+        program = function()
+          return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+        end,
+        cwd = '${workspaceFolder}',
+        stopAtEntry = true,
       },
     }
   end,
